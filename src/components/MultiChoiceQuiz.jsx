@@ -20,7 +20,7 @@ const MultiChoiceQuiz = () => {
     const isCorrect = selected === quizData.multipleChoice[questionIndex].correct;
 
     if (isCorrect) {
-      toast.success("Lets Go Correct!");
+      toast.success("Correct!");
       const newScore = score + 5;
       setScore(newScore);
       saveScore(newScore);

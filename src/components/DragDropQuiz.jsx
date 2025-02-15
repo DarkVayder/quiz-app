@@ -17,7 +17,7 @@ const DragDropQuiz = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(getScore());
   const [submitted, setSubmitted] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(null); // Success state
+  const [isCorrect, setIsCorrect] = useState(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
 
   const totalQuestions = quizData.dragDrop.length;
@@ -44,17 +44,34 @@ const DragDropQuiz = () => {
     };
   }, [draggedIndex]);
 
+  // Handles dragging on desktop
   const handleDragStart = (e, index) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
   };
 
+  const handleDrop = (index) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const updatedItems = [...items];
+    const movedItem = updatedItems.splice(draggedIndex, 1)[0];
+    updatedItems.splice(index, 0, movedItem);
+
+    setItems(updatedItems);
+    setDraggedIndex(null);
+  };
+
+  // Handles touch gestures for mobile
   const handleTouchStart = (index) => {
     setDraggedIndex(index);
   };
 
-  const handleDrop = (index) => {
-    if (draggedIndex === null) return;
+  const handleTouchMove = (e) => {
+    e.preventDefault(); // Prevent scrolling while dragging
+  };
+
+  const handleTouchEnd = (index) => {
+    if (draggedIndex === null || draggedIndex === index) return;
 
     const updatedItems = [...items];
     const movedItem = updatedItems.splice(draggedIndex, 1)[0];
@@ -72,7 +89,7 @@ const DragDropQuiz = () => {
       }
     });
 
-    setIsCorrect(correct); // Update state
+    setIsCorrect(correct);
 
     if (correct) {
       toast.success("✅ Correct match!");
@@ -98,7 +115,7 @@ const DragDropQuiz = () => {
         )
       );
       setSubmitted(false);
-      setIsCorrect(null); // Reset success/error state
+      setIsCorrect(null);
     }
   };
 
@@ -149,7 +166,6 @@ const DragDropQuiz = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-100">
-      {/* Home Button (Outside Game Panel) */}
       <button
         onClick={() => navigate("/")}
         className="fixed top-4 left-4 p-2 bg-purple-700 text-white rounded-full hover:bg-purple-600 transition"
@@ -157,22 +173,16 @@ const DragDropQuiz = () => {
         <FaHome size={20} />
       </button>
 
-      {/* Progress Bar & Score Counter */}
       <div className="w-full max-w-lg flex justify-between items-center mt-16 px-4">
-        {/* Progress Bar */}
         <div className="relative w-24 h-2 bg-gray-300 rounded-full">
           <div
             className="absolute top-0 left-0 h-2 bg-purple-700 rounded-full"
             style={{ width: `${((currentIndex + 1) / totalQuestions) * 100}%` }}
           ></div>
         </div>
-        {/* Score Counter */}
-        <div className="text-lg font-semibold text-purple-700">
-          Score: {score}
-        </div>
+        <div className="text-lg font-semibold text-purple-700">Score: {score}</div>
       </div>
 
-      {/* Game Panel */}
       <div className="max-w-lg w-full bg-white p-6 shadow-lg rounded-lg mt-6">
         <h2 className="text-lg font-bold text-center text-gray-800">
           {currentQuestion.title}
@@ -194,7 +204,8 @@ const DragDropQuiz = () => {
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDrop(index)}
                 onTouchStart={() => handleTouchStart(index)}
-                onTouchEnd={() => handleDrop(index)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={() => handleTouchEnd(index)}
                 className={`p-4 text-sm rounded-lg border text-center cursor-move transition ${
                   isMatchCorrect
                     ? "bg-green-100 border-green-500 text-green-700"
@@ -209,37 +220,18 @@ const DragDropQuiz = () => {
           })}
         </div>
 
-        {/* Success/Error Messages */}
-        {submitted && isCorrect && (
-          <p className="text-green-700 font-bold text-center mt-3">✅ Well done!</p>
-        )}
-        {submitted && isCorrect === false && (
-          <p className="text-red-700 font-bold text-center mt-3">❌ Try again!</p>
-        )}
+        {submitted && isCorrect && <p className="text-green-700 font-bold text-center mt-3">✅ Well done!</p>}
+        {submitted && isCorrect === false && <p className="text-red-700 font-bold text-center mt-3">❌ Try again!</p>}
 
         <div className="mt-6 flex justify-between items-center">
-          {currentIndex > 0 && (
-            <button onClick={prevQuestion} className="p-2 rounded-full bg-purple-700 text-white hover:bg-purple-600">
-              <FaArrowLeft size={20} />
-            </button>
-          )}
-
-          <button onClick={refreshQuiz} className="p-2 rounded-full bg-purple-700 text-white hover:bg-purple-600">
-            <FaRedo size={20} />
-          </button>
-
+          {currentIndex > 0 && <button onClick={prevQuestion} className="p-2 rounded-full bg-purple-700 text-white hover:bg-purple-600"><FaArrowLeft size={20} /></button>}
+          <button onClick={refreshQuiz} className="p-2 rounded-full bg-purple-700 text-white hover:bg-purple-600"><FaRedo size={20} /></button>
           {!submitted ? (
-            <button onClick={checkAnswers} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">
-              Submit
-            </button>
+            <button onClick={checkAnswers} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Submit</button>
           ) : currentIndex + 1 < totalQuestions ? (
-            <button onClick={nextQuestion} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">
-              Continue
-            </button>
+            <button onClick={nextQuestion} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Continue</button>
           ) : (
-            <button onClick={restartQuiz} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">
-              Play Again
-            </button>
+            <button onClick={restartQuiz} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Play Again</button>
           )}
         </div>
       </div>
