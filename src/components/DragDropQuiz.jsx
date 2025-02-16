@@ -133,7 +133,7 @@ const DragDropQuiz = () => {
           {currentIndex > 0 && <button onClick={prevQuestion} className="p-2 rounded-full bg-purple-700 text-white hover:bg-purple-600"><FaArrowLeft size={20} /></button>}
           <button onClick={checkAnswers} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Submit</button>
           {currentIndex + 1 < totalQuestions ? (
-            <button onClick={nextQuestion} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Next</button>
+            <button onClick={nextQuestion} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Continue</button>
           ) : (
             <button onClick={() => window.location.reload()} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Restart</button>
           )}
