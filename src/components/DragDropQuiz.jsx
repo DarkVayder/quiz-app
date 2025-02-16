@@ -1,16 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import quizData from "../utils/quizData";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import SortableItem from "./SortableItem";
 import { toast } from "react-toastify";
 import { saveScore, getScore } from "../utils/localStorage";
 import { FaArrowLeft, FaRedo, FaHome } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-const shuffleArray = (array) => {
-  return array
-    .map((item) => ({ ...item, sort: Math.random() }))
-    .sort((a, b) => a.sort - b.sort)
-    .map((item) => ({ term: item.term, id: item.id }));
-};
+const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
 
 const DragDropQuiz = () => {
   const navigate = useNavigate();
@@ -18,79 +16,36 @@ const DragDropQuiz = () => {
   const [score, setScore] = useState(getScore());
   const [submitted, setSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(null);
-  const [draggedIndex, setDraggedIndex] = useState(null);
 
   const totalQuestions = quizData.dragDrop.length;
   const currentQuestion = quizData.dragDrop[currentIndex];
 
-  const formattedPairs = shuffleArray(
+  const initialPairs = shuffleArray(
     currentQuestion.pairs.map((item, index) => ({
       ...item,
       id: `item-${index}`,
     }))
   );
 
-  const [items, setItems] = useState(formattedPairs);
+  const [items, setItems] = useState(initialPairs);
 
-  useEffect(() => {
-    const preventTouchMove = (e) => {
-      if (draggedIndex !== null) e.preventDefault();
-    };
+  const onDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-    document.addEventListener("touchmove", preventTouchMove, { passive: false });
+    const oldIndex = items.findIndex((item) => item.id === active.id);
+    const newIndex = items.findIndex((item) => item.id === over.id);
 
-    return () => {
-      document.removeEventListener("touchmove", preventTouchMove);
-    };
-  }, [draggedIndex]);
-
-  // Handles dragging on desktop
-  const handleDragStart = (e, index) => {
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDrop = (index) => {
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const updatedItems = [...items];
-    const movedItem = updatedItems.splice(draggedIndex, 1)[0];
-    updatedItems.splice(index, 0, movedItem);
-
-    setItems(updatedItems);
-    setDraggedIndex(null);
-  };
-
-  // Handles touch gestures for mobile
-  const handleTouchStart = (index) => {
-    setDraggedIndex(index);
-  };
-
-  const handleTouchMove = (e) => {
-    e.preventDefault(); // Prevent scrolling while dragging
-  };
-
-  const handleTouchEnd = (index) => {
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const updatedItems = [...items];
-    const movedItem = updatedItems.splice(draggedIndex, 1)[0];
-    updatedItems.splice(index, 0, movedItem);
-
-    setItems(updatedItems);
-    setDraggedIndex(null);
+    setItems((prevItems) => arrayMove(prevItems, oldIndex, newIndex));
   };
 
   const checkAnswers = () => {
     let correct = true;
     items.forEach((item, index) => {
-      if (item.term !== currentQuestion.pairs[index].term) {
-        correct = false;
-      }
+      if (item.term !== currentQuestion.pairs[index].term) correct = false;
     });
 
     setIsCorrect(correct);
-
     if (correct) {
       toast.success("✅ Correct match!");
       const newScore = score + 10;
@@ -99,13 +54,12 @@ const DragDropQuiz = () => {
     } else {
       toast.error("❌ Incorrect order! Try again.");
     }
-
     setSubmitted(true);
   };
 
   const nextQuestion = () => {
     if (currentIndex + 1 < totalQuestions) {
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex(currentIndex + 1);
       setItems(
         shuffleArray(
           quizData.dragDrop[currentIndex + 1].pairs.map((item, index) => ({
@@ -121,7 +75,7 @@ const DragDropQuiz = () => {
 
   const prevQuestion = () => {
     if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
+      setCurrentIndex(currentIndex - 1);
       setItems(
         shuffleArray(
           quizData.dragDrop[currentIndex - 1].pairs.map((item, index) => ({
@@ -133,35 +87,6 @@ const DragDropQuiz = () => {
       setSubmitted(false);
       setIsCorrect(null);
     }
-  };
-
-  const refreshQuiz = () => {
-    setItems(
-      shuffleArray(
-        quizData.dragDrop[currentIndex].pairs.map((item, index) => ({
-          ...item,
-          id: `item-${index}`,
-        }))
-      )
-    );
-    setSubmitted(false);
-    setIsCorrect(null);
-  };
-
-  const restartQuiz = () => {
-    setCurrentIndex(0);
-    setScore(0);
-    saveScore(0);
-    setItems(
-      shuffleArray(
-        quizData.dragDrop[0].pairs.map((item, index) => ({
-          ...item,
-          id: `item-${index}`,
-        }))
-      )
-    );
-    setSubmitted(false);
-    setIsCorrect(null);
   };
 
   return (
@@ -191,47 +116,26 @@ const DragDropQuiz = () => {
           Drag (or tap and hold) the correct term below to match its definition above.
         </p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {items.map((item, index) => {
-            const isMatchCorrect =
-              submitted && item.term === currentQuestion.pairs[index].term;
-
-            return (
-              <div
-                key={item.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => handleDrop(index)}
-                onTouchStart={() => handleTouchStart(index)}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={() => handleTouchEnd(index)}
-                className={`p-4 text-sm rounded-lg border text-center cursor-move transition ${
-                  isMatchCorrect
-                    ? "bg-green-100 border-green-500 text-green-700"
-                    : submitted
-                    ? "bg-red-100 border-red-500 text-red-700"
-                    : "bg-gray-100 border-gray-300 hover:bg-gray-200"
-                }`}
-              >
-                {item.term}
-              </div>
-            );
-          })}
-        </div>
+        <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={items} strategy={verticalListSortingStrategy}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {items.map((item) => (
+                <SortableItem key={item.id} id={item.id} term={item.term} submitted={submitted} correctTerm={currentQuestion.pairs.find((p) => p.id === item.id)?.term} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {submitted && isCorrect && <p className="text-green-700 font-bold text-center mt-3">✅ Well done!</p>}
         {submitted && isCorrect === false && <p className="text-red-700 font-bold text-center mt-3">❌ Try again!</p>}
 
         <div className="mt-6 flex justify-between items-center">
           {currentIndex > 0 && <button onClick={prevQuestion} className="p-2 rounded-full bg-purple-700 text-white hover:bg-purple-600"><FaArrowLeft size={20} /></button>}
-          <button onClick={refreshQuiz} className="p-2 rounded-full bg-purple-700 text-white hover:bg-purple-600"><FaRedo size={20} /></button>
-          {!submitted ? (
-            <button onClick={checkAnswers} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Submit</button>
-          ) : currentIndex + 1 < totalQuestions ? (
-            <button onClick={nextQuestion} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Continue</button>
+          <button onClick={checkAnswers} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Submit</button>
+          {currentIndex + 1 < totalQuestions ? (
+            <button onClick={nextQuestion} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Next</button>
           ) : (
-            <button onClick={restartQuiz} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Play Again</button>
+            <button onClick={() => window.location.reload()} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Restart</button>
           )}
         </div>
       </div>
