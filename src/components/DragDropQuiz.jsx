@@ -5,7 +5,7 @@ import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-ki
 import SortableItem from "./SortableItem";
 import { toast } from "react-toastify";
 import { saveScore, getScore } from "../utils/localStorage";
-import { FaArrowLeft, FaRedo, FaHome } from "react-icons/fa";
+import { FaArrowLeft, FaHome } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
@@ -135,7 +135,7 @@ const DragDropQuiz = () => {
           {currentIndex + 1 < totalQuestions ? (
             <button onClick={nextQuestion} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Continue</button>
           ) : (
-            <button onClick={() => window.location.reload()} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Restart</button>
+            <button onClick={() => navigate(0)} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Restart</button>
           )}
         </div>
       </div>
