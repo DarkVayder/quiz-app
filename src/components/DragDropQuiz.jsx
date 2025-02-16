@@ -89,6 +89,23 @@ const DragDropQuiz = () => {
     }
   };
 
+  // 🔄 Play Again Logic (from MultiChoiceQuiz)
+  const handlePlayAgain = () => {
+    setCurrentIndex(0);
+    setScore(0);
+    saveScore(0);
+    setSubmitted(false);
+    setIsCorrect(null);
+    setItems(
+      shuffleArray(
+        quizData.dragDrop[0].pairs.map((item, index) => ({
+          ...item,
+          id: `item-${index}`,
+        }))
+      )
+    );
+  };
+
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-100">
       <button
@@ -135,7 +152,7 @@ const DragDropQuiz = () => {
           {currentIndex + 1 < totalQuestions ? (
             <button onClick={nextQuestion} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Continue</button>
           ) : (
-            <button onClick={() => navigate(0)} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Restart</button>
+            <button onClick={handlePlayAgain} className="py-2 px-6 rounded-lg bg-purple-700 text-white hover:bg-purple-600">Play Again</button>
           )}
         </div>
       </div>
